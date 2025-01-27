@@ -4,7 +4,8 @@
     "description": "A REST API Backend for a blogging application",
     "main": "index.js",
     "scripts": {
-        "start": "node --watch-path=./api --watch index.js"
+        "dev": "node --env-file=.development.env --watch-path=./api --watch index.js",
+        "start": "node --env-file=.env index.js"
     },
     "author": "Shivangam Soni (shiovangamsoni99@gmail.com)",
     "license": "ISC",
