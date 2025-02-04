@@ -162,4 +162,18 @@ authRouter.post("/refresh", async (req, res) => {
     });
 });
 
+/**
+ * Handle User Logout
+ *
+ * @route POST /logout
+ * @async
+ */
+authRouter.post("/logout", async (req, res) => {
+    res.clearCookie("refreshToken", { httpOnly: true, sameSite: "strict" });
+    return res.status(200).json({
+        success: true,
+        message: "Logged Out Successfully",
+    });
+});
+
 module.exports = authRouter;
