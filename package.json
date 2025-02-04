@@ -4,11 +4,18 @@
     "description": "A REST API Backend for a blogging application",
     "main": "index.js",
     "scripts": {
-        "start": "node --watch-path=./api --watch index.js"
+        "dev": "node --env-file=.development.env --watch-path=./api --watch index.js",
+        "start": "node --env-file=.env index.js"
     },
     "author": "Shivangam Soni (shiovangamsoni99@gmail.com)",
     "license": "ISC",
     "dependencies": {
-        "express": "^4.21.2"
+        "bcrypt": "^5.1.1",
+        "cookie-parser": "^1.4.7",
+        "express": "^4.21.2",
+        "joi": "^17.13.3",
+        "jsonwebtoken": "^9.0.2",
+        "mongodb": "^6.12.0",
+        "mongoose": "^8.9.5"
     }
 }
