@@ -11,4 +11,19 @@ function generateRefreshToken(payload) {
     return jwt.sign(payload, REFRESH_TOKEN_SECRET, { expiresIn: "15d" });
 }
 
-module.exports = { generateAccessToken, generateRefreshToken };
+function verifyRefreshToken(token) {
+    let data, error;
+    try {
+        data = jwt.verify(token, REFRESH_TOKEN_SECRET);
+    } catch (err) {
+        error = err;
+    }
+
+    return { error, data };
+}
+
+module.exports = {
+    generateAccessToken,
+    generateRefreshToken,
+    verifyRefreshToken,
+};

@@ -1,5 +1,6 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const bodyRequired = require("../middleware/bodyRequires");
 const User = require("../model/user.model");
@@ -7,7 +8,11 @@ const {
     UserRegistrationSchema,
     UserLoginSchema,
 } = require("../validators/user");
-const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
+const {
+    generateAccessToken,
+    generateRefreshToken,
+    verifyRefreshToken,
+} = require("../utils/jwt");
 
 const authRouter = express.Router();
 
@@ -120,6 +125,39 @@ authRouter.post("/login", bodyRequired, async (req, res) => {
     return res.json({
         success: true,
         message: "User Logged In",
+        accessToken,
+    });
+});
+
+/**
+ * Handle Token Refresh
+ *
+ * @route POST /refresh
+ * @async
+ * @param {string} req.cookies.refreshToken - The user's refresh token.
+ */
+authRouter.post("/refresh", async (req, res) => {
+    const { refreshToken } = req.cookies;
+
+    if (!refreshToken) {
+        return res.status(401).json({
+            success: false,
+            message: "No refresh token provided",
+        });
+    }
+
+    const { error, data } = verifyRefreshToken(refreshToken);
+    if (error) {
+        return res.status(401).json({
+            success: false,
+            message: "Invalid or Expired refresh token",
+        });
+    }
+
+    const accessToken = generateAccessToken({ id: data.id, email: data.email });
+    return res.status(200).json({
+        success: true,
+        message: "New Access Token Generated",
         accessToken,
     });
 });
