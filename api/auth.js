@@ -2,9 +2,12 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 
 const bodyRequired = require("../middleware/bodyRequires");
-
 const User = require("../model/user.model");
-const { UserRegistrationSchema } = require("../validators/user");
+const {
+    UserRegistrationSchema,
+    UserLoginSchema,
+} = require("../validators/user");
+const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 
 const authRouter = express.Router();
 
@@ -22,7 +25,10 @@ const SALT_ROUNDS = 10;
  * @param {string} req.body.password - The user's password.
  */
 authRouter.post("/register", bodyRequired, async (req, res) => {
-    const { value, error } = UserRegistrationSchema.validate(req.body);
+    const {
+        value: { name, email, password },
+        error,
+    } = UserRegistrationSchema.validate(req.body);
 
     if (error) {
         return res.status(400).json({
@@ -31,7 +37,7 @@ authRouter.post("/register", bodyRequired, async (req, res) => {
         });
     }
 
-    const existingUser = await User.findOne({ email: value.email });
+    const existingUser = await User.findOne({ email: email });
     if (existingUser) {
         return res.status(409).json({
             success: false,
@@ -39,10 +45,14 @@ authRouter.post("/register", bodyRequired, async (req, res) => {
         });
     }
 
-    value.password = await bcrypt.hash(value.password, SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
     try {
-        const user = await User.create(value);
+        const user = await User.create({
+            name,
+            email,
+            password: hashedPassword,
+        });
         return res.status(201).json({
             success: true,
             message: "User Registered Successfully",
@@ -54,6 +64,64 @@ authRouter.post("/register", bodyRequired, async (req, res) => {
             message: "DB Error",
         });
     }
+});
+
+/**
+ * Handle User Login
+ *
+ * @route POST /login
+ * @middleware {Function} bodyRequired - Ensures that the request body is not empty.
+ * @async
+ * @param {Object} req.body - The request body containing registration details.
+ * @param {string} req.body.email - The user's email.
+ * @param {string} req.body.password - The user's password.
+ */
+authRouter.post("/login", bodyRequired, async (req, res) => {
+    const {
+        value: { email, password },
+        error,
+    } = UserLoginSchema.validate(req.body);
+
+    if (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+
+    const user = await User.findOne({ email });
+    // For Security it's better to respond with Generic Errors
+    // ref: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#authentication-and-error-messages
+    if (!user) {
+        return res.status(401).json({
+            success: false,
+            message: "Invalid Email or Password",
+        });
+    }
+
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    if (!isPasswordMatch) {
+        return res.status(401).json({
+            success: false,
+            message: "Invalid Email or Password",
+        });
+    }
+
+    const payload = { id: user.id, email: user.email };
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        sameSite: "strict",
+        maxAge: 15 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.json({
+        success: true,
+        message: "User Logged In",
+        accessToken,
+    });
 });
 
 module.exports = authRouter;
