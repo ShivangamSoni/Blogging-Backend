@@ -18,6 +18,8 @@ const authRouter = express.Router();
 
 const SALT_ROUNDS = 10;
 
+// TODO: Enhance Auth
+
 /**
  * Handle User Registration
  *
